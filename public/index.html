@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f0">
+  <title>Iko Mika | Async CRUD</title>
+  <style>
+    /* Theme */
+    :root {
+      color-scheme: light;
+      --paper: #f5f5f0;
+      --surface: #fff;
+      --ink: #202520;
+      --muted: #737970;
+      --line: #e4e6df;
+      --green: #285c48;
+      --green-light: #e4f0e9;
+      --orange: #e47a48;
+      --orange-light: #fbede4;
+      --blue-light: #e9f0f5;
+      --shadow: 0 14px 40px rgb(28 39 31 / 6%);
+    }
+
+    /* Base */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    /* Page layout and header */
+    .shell {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 26px 36px 48px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 25px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 750;
+      font-size: 16px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 33px;
+      height: 33px;
+      border-radius: 10px;
+      background: var(--green);
+      color: white;
+      font: 700 17px Georgia, serif;
+    }
+
+    .api-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .api-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #52a278;
+      box-shadow: 0 0 0 3px #52a27820;
+    }
+
+    .api-state.offline .api-dot {
+      background: #d3654e;
+      box-shadow: 0 0 0 3px #d3654e20;
+    }
+
+    .api-state.loading .api-dot {
+      background: #d99a42;
+      box-shadow: 0 0 0 3px #d99a4220;
+      animation: pulse 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      to {
+        opacity: .45;
+      }
+    }
+
+    .api-disclosure {
+      margin: -13px 0 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Intro and summary */
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      padding: 36px 0 25px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font: 500 38px/1.12 Georgia, "Times New Roman", serif;
+      letter-spacing: 0;
+    }
+
+    .intro-copy {
+      margin: 9px 0 0;
+      color: var(--muted);
+    }
+
+    .refresh {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 9px 13px;
+      font-weight: 650;
+    }
+
+    .refresh:hover {
+      border-color: #aeb5aa;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      overflow: hidden;
+      margin-bottom: 25px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--line);
+    }
+
+    .stat {
+      padding: 15px 19px;
+      background: var(--surface);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 5px;
+      font: 500 25px/1 Georgia, serif;
+    }
+
+    /* Form layout and fields */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(265px, 325px) minmax(0, 1fr);
+      align-items: start;
+      gap: 28px;
+    }
+
+    .form-panel {
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .form-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .edit-tag {
+      display: none;
+      border-radius: 4px;
+      background: var(--orange-light);
+      color: #99502e;
+      padding: 4px 7px;
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+    }
+
+    .is-editing .edit-tag {
+      display: inline-block;
+    }
+
+    .field {
+      display: block;
+      margin-bottom: 14px;
+    }
+
+    .field-label {
+      display: block;
+      margin-bottom: 6px;
+      color: #464b44;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .field input,
+    .field select,
+    .field textarea,
+    .search input {
+      width: 100%;
+      border: 1px solid #dfe2db;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .field input,
+    .field select {
+      height: 39px;
+      padding: 0 10px;
+    }
+
+    .field textarea {
+      min-height: 76px;
+      padding: 9px 10px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus,
+    .search input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px #285c4818;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .primary,
+    .secondary {
+      min-height: 39px;
+      border-radius: 6px;
+      padding: 0 13px;
+      font-weight: 700;
+    }
+
+    .primary {
+      flex: 1;
+      border: 1px solid var(--green);
+      background: var(--green);
+      color: white;
+    }
+
+    .primary:hover {
+      background: #204a39;
+    }
+
+    .primary:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+
+    .secondary {
+      display: none;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--muted);
+    }
+
+    .is-editing .secondary {
+      display: block;
+    }
+
+    /* List toolbar and filters */
+    .list-area {
+      min-width: 0;
+    }
+
+    .list-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      min-height: 42px;
+      margin-bottom: 12px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 5px;
+    }
+
+    .filter {
+      border: 0;
+      border-radius: 5px;
+      background: transparent;
+      color: var(--muted);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .filter[aria-pressed="true"] {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .search {
+      width: min(200px, 38%);
+    }
+
+    .search input {
+      height: 35px;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+
+    /* Records and status controls */
+    .record-list {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+    }
+
+    .record {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 13px;
+      padding: 16px 17px;
+      border-bottom: 1px solid var(--line);
+      animation: arrive .24s ease both;
+    }
+
+    .record:last-child {
+      border-bottom: 0;
+    }
+
+    @keyframes arrive {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-toggle {
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid #bfc7bd;
+      border-radius: 50%;
+      background: white;
+      color: white;
+      padding: 0;
+      font-size: 12px;
+    }
+
+    .status-toggle[data-status="Done"] {
+      border-color: var(--green);
+      background: var(--green);
+    }
+
+    .record-title {
+      overflow: hidden;
+      margin: 0;
+      font-size: 14px;
+      font-weight: 680;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .record[data-status="Done"] .record-title {
+      color: #858a82;
+      text-decoration: line-through;
+    }
+
+    .record-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .category {
+      border-radius: 4px;
+      background: var(--blue-light);
+      color: #45677e;
+      padding: 3px 6px;
+      font-weight: 650;
+    }
+
+    .category[data-category="Study"] {
+      background: #f8eee2;
+      color: #92613a;
+    }
+
+    .category[data-category="Work"] {
+      background: #e7f1e9;
+      color: #477052;
+    }
+
+    .record-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .record-action {
+      border: 1px solid transparent;
+      border-radius: 5px;
+      background: transparent;
+      color: #62685f;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .record-action:hover {
+      border-color: var(--line);
+      background: #fafbf8;
+      color: var(--ink);
+    }
+
+    .record-action.delete:hover {
+      color: #b24838;
+    }
+
+    /* Loading, empty, and feedback states */
+    .loading-state {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      min-height: 126px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+      border: 2px solid #dfe5df;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .retry-button {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: white;
+      color: var(--green);
+      padding: 8px 12px;
+      font-weight: 700;
+    }
+
+    .retry-button:hover {
+      border-color: var(--green);
+    }
+
+    .empty {
+      padding: 42px 20px;
+      text-align: center;
+    }
+
+    .empty-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: var(--orange-light);
+      color: #a65e37;
+      font: 600 22px Georgia, serif;
+    }
+
+    .empty h3 {
+      margin: 0;
+      font: 500 19px Georgia, serif;
+    }
+
+    .empty p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .notice {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 2;
+      max-width: min(390px, calc(100vw - 36px));
+      padding: 12px 16px;
+      border: 1px solid #d8dfd6;
+      border-radius: 7px;
+      background: white;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    .notice.error {
+      border-color: #efc8be;
+      color: #a33c2c;
+    }
+
+    .notice.loading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .notice.loading::before {
+      width: 13px;
+      height: 13px;
+      flex: 0 0 auto;
+      border: 2px solid #dfe5df;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      content: "";
+      animation: spin .75s linear infinite;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    /* Responsive layout */
+    @media (max-width: 760px) {
+      .shell {
+        padding: 18px 18px 32px;
+      }
+
+      .intro {
+        padding-top: 28px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .form-panel {
+        order: 0;
+      }
+
+      .list-area {
+        order: 1;
+      }
+    }
+
+    @media (max-width: 470px) {
+      .shell {
+        padding-right: 13px;
+        padding-left: 13px;
+      }
+
+      .intro {
+        align-items: start;
+      }
+
+      .intro-copy {
+        max-width: 260px;
+        line-height: 1.5;
+      }
+
+      .refresh {
+        flex: 0 0 auto;
+        padding: 8px;
+        font-size: 11px;
+      }
+
+      .stat {
+        padding: 12px 10px;
+      }
+
+      .stat-value {
+        font-size: 22px;
+      }
+
+      .list-toolbar {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .search {
+        width: 100%;
+      }
+
+      .record {
+        grid-template-columns: 20px minmax(0, 1fr);
+        gap: 10px;
+        padding: 14px 12px;
+      }
+
+      .record-actions {
+        grid-column: 2;
+      }
+
+      .record-action {
+        padding: 4px 7px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">I</span> Iko Mika</div>
+      <div class="api-state" id="apiState"><span class="api-dot" aria-hidden="true"></span><span id="apiLabel">Connecting to remote API</span></div>
+    </header>
+
+    <section class="intro" aria-labelledby="pageTitle">
+      <div>
+        <p class="eyebrow">Your working list</p>
+        <h1 id="pageTitle">Make room for the next thing.</h1>
+        <p class="intro-copy">A little structure for everything on your mind.</p>
+      </div>
+      <button class="refresh" id="refreshButton" type="button">↻ &nbsp;Refresh</button>
+    </section>
+    <p class="api-disclosure">Records are stored by a public demo API. Avoid entering private information.</p>
+
+    <section class="stats" aria-label="List summary">
+      <div class="stat"><span class="stat-label">All entries</span><strong class="stat-value" id="totalCount">0</strong></div>
+      <div class="stat"><span class="stat-label">In progress</span><strong class="stat-value" id="activeCount">0</strong></div>
+      <div class="stat"><span class="stat-label">Completed</span><strong class="stat-value" id="doneCount">0</strong></div>
+    </section>
+
+    <div class="workspace">
+      <form class="form-panel" id="recordForm">
+        <div class="form-heading"><h2 id="formTitle">Add an entry</h2><span class="edit-tag">Editing</span></div>
+        <label class="field"><span class="field-label">What needs doing?</span><input id="titleInput" name="title" maxlength="100" placeholder="e.g. Review the project outline" required></label>
+        <label class="field"><span class="field-label">Area</span><select id="categoryInput" name="category"><option>Personal</option><option>Work</option><option>Study</option></select></label>
+        <label class="field"><span class="field-label">Status</span><select id="statusInput" name="status"><option>Open</option><option>In progress</option><option>Done</option></select></label>
+        <label class="field"><span class="field-label">Due date</span><input id="dueDateInput" name="dueDate" type="date"></label>
+        <label class="field"><span class="field-label">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></span><textarea id="notesInput" name="notes" maxlength="500" placeholder="Add a detail to remember..."></textarea></label>
+        <div class="form-actions"><button class="primary" id="submitButton" type="submit">Add entry</button><button class="secondary" id="cancelButton" type="button">Cancel</button></div>
+      </form>
+
+      <section class="list-area" aria-label="Entries">
+        <div class="list-toolbar">
+          <div class="filters" role="group" aria-label="Filter entries">
+            <button class="filter" type="button" data-filter="All" aria-pressed="true">All</button>
+            <button class="filter" type="button" data-filter="Open" aria-pressed="false">Open</button>
+            <button class="filter" type="button" data-filter="In progress" aria-pressed="false">In progress</button>
+            <button class="filter" type="button" data-filter="Done" aria-pressed="false">Done</button>
+          </div>
+          <label class="search"><input id="searchInput" type="search" placeholder="Search entries" aria-label="Search entries"></label>
+        </div>
+        <div class="record-list" id="recordList" aria-live="polite" aria-busy="false"></div>
+      </section>
+    </div>
+  </main>
+  <div class="notice" id="notice" role="status" hidden></div>
+
+  <script>
+    const apiUrl = 'https://api.restful-api.dev/objects';
+    const form = document.querySelector('#recordForm');
+    const recordList = document.querySelector('#recordList');
+    const submitButton = document.querySelector('#submitButton');
+    const refreshButton = document.querySelector('#refreshButton');
+    const notice = document.querySelector('#notice');
+    const apiState = document.querySelector('#apiState');
+    const apiLabel = document.querySelector('#apiLabel');
+    const filters = document.querySelector('.filters');
+    const knownIdsKey = 'daymark.remote-record-ids';
+    let records = [];
+    let activeFilter = 'All';
+    let editingId = null;
+    let noticeTimer;
+
+    async function request(path = '', options = {}) {
+      const response = await fetch(`${apiUrl}${path}`, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...options.headers }
+      });
+      const text = await response.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = { message: text.slice(0, 180) };
+      }
+      if (!response.ok) throw new Error(data?.message || data?.error || `Request failed (${response.status})`);
+      return data;
+    }
+
+    function toApiRecord(record) {
+      return {
+        name: 'Daymark entry',
+        data: {
+          app: 'daymark',
+          title: record.title,
+          category: record.category,
+          status: record.status,
+          dueDate: record.dueDate,
+          notes: record.notes
+        }
+      };
+    }
+
+    function fromApiRecord(record) {
+      return { id: record.id, ...record.data };
+    }
+
+    function knownRemoteIds() {
+      try {
+        const ids = JSON.parse(localStorage.getItem(knownIdsKey) || '[]');
+        return Array.isArray(ids) ? ids.map(String) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function rememberRemoteId(id) {
+      const ids = new Set(knownRemoteIds());
+      ids.add(String(id));
+      localStorage.setItem(knownIdsKey, JSON.stringify([...ids]));
+    }
+
+    function forgetRemoteId(id) {
+      const ids = knownRemoteIds().filter(knownId => knownId !== String(id));
+      localStorage.setItem(knownIdsKey, JSON.stringify(ids));
+    }
+
+    function showNotice(message, isError = false) {
+      clearTimeout(noticeTimer);
+      notice.textContent = message;
+      notice.classList.toggle('error', isError);
+      notice.classList.remove('loading');
+      notice.setAttribute('role', isError ? 'alert' : 'status');
+      notice.hidden = false;
+      noticeTimer = setTimeout(() => { notice.hidden = true; }, 3200);
+    }
+
+    function showLoadingNotice(message) {
+      clearTimeout(noticeTimer);
+      notice.textContent = message;
+      notice.classList.remove('error');
+      notice.classList.add('loading');
+      notice.setAttribute('role', 'status');
+      notice.hidden = false;
+    }
+
+    function setApiLoading(message) {
+      apiState.classList.remove('offline');
+      apiState.classList.add('loading');
+      apiLabel.textContent = message;
+    }
+
+    function setConnected(connected) {
+      apiState.classList.toggle('offline', !connected);
+      apiState.classList.remove('loading');
+      apiLabel.textContent = connected ? 'Remote API connected' : 'API connection lost';
+    }
+
+    function updateStats() {
+      document.querySelector('#totalCount').textContent = records.length;
+      document.querySelector('#activeCount').textContent = records.filter(record => record.status === 'In progress').length;
+      document.querySelector('#doneCount').textContent = records.filter(record => record.status === 'Done').length;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+    }
+
+    function render() {
+      updateStats();
+      const query = document.querySelector('#searchInput').value.trim().toLowerCase();
+      const visibleRecords = records.filter(record => {
+        const matchesFilter = activeFilter === 'All' || record.status === activeFilter;
+        const matchesSearch = `${record.title} ${record.category} ${record.notes}`.toLowerCase().includes(query);
+        return matchesFilter && matchesSearch;
+      });
+
+      if (!visibleRecords.length) {
+        const isEmpty = records.length === 0;
+        recordList.innerHTML = `<div class="empty"><span class="empty-mark" aria-hidden="true">${isEmpty ? '+' : '·'}</span><h3>${isEmpty ? 'A clear page.' : 'Nothing matches.'}</h3><p>${isEmpty ? 'Add an entry to get your list moving.' : 'Try another filter or search.'}</p></div>`;
+        return;
+      }
+
+      recordList.innerHTML = visibleRecords.map(record => {
+        const due = record.dueDate
+          ? `<span>Due ${new Date(`${record.dueDate}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>`
+          : '';
+        const notes = record.notes ? `<span>${escapeHtml(record.notes)}</span>` : '';
+        return `<article class="record" data-status="${escapeHtml(record.status)}">
+          <button class="status-toggle" type="button" data-action="advance" data-id="${escapeHtml(record.id)}" data-status="${escapeHtml(record.status)}" aria-label="Change status for ${escapeHtml(record.title)}" title="Change status">${record.status === 'Done' ? '✓' : ''}</button>
+          <div><h3 class="record-title">${escapeHtml(record.title)}</h3><div class="record-meta"><span class="category" data-category="${escapeHtml(record.category)}">${escapeHtml(record.category)}</span><span>${escapeHtml(record.status)}</span>${due}${notes}</div></div>
+          <div class="record-actions"><button class="record-action" type="button" data-action="edit" data-id="${escapeHtml(record.id)}">Edit</button><button class="record-action delete" type="button" data-action="delete" data-id="${escapeHtml(record.id)}">Delete</button></div>
+        </article>`;
+      }).join('');
+    }
+
+    async function loadRecords() {
+      recordList.setAttribute('aria-busy', 'true');
+      refreshButton.disabled = true;
+      refreshButton.textContent = 'Loading...';
+      setApiLoading('Loading records...');
+      if (!records.length) {
+        recordList.innerHTML = '<div class="loading-state" role="status"><span class="spinner" aria-hidden="true"></span><span>Loading entries...</span></div>';
+      }
+      try {
+        const remoteRecords = await request('?limit=100');
+        const collectionIds = new Set(remoteRecords.map(record => String(record.id)));
+        const linkedRecords = await Promise.all(knownRemoteIds()
+          .filter(id => !collectionIds.has(id))
+          .map(async id => {
+            try {
+              return await request(`/${encodeURIComponent(id)}`);
+            } catch {
+              forgetRemoteId(id);
+              return null;
+            }
+          }));
+        records = [...remoteRecords, ...linkedRecords.filter(Boolean)]
+          .filter(record => record.name === 'Daymark entry' && record.data?.app === 'daymark')
+          .map(fromApiRecord);
+        setConnected(true);
+        render();
+      } catch (error) {
+        setConnected(false);
+        showNotice(error.message, true);
+        if (!records.length) {
+          recordList.innerHTML = `<div class="empty"><span class="empty-mark" aria-hidden="true">!</span><h3>Could not load entries.</h3><p>${escapeHtml(error.message)}</p><button class="retry-button" type="button" data-action="retry">Try again</button></div>`;
+        }
+      } finally {
+        recordList.setAttribute('aria-busy', 'false');
+        refreshButton.disabled = false;
+        refreshButton.textContent = '↻  Refresh';
+      }
+    }
+
+    function resetForm() {
+      form.reset();
+      editingId = null;
+      form.classList.remove('is-editing');
+      document.querySelector('#formTitle').textContent = 'Add an entry';
+      submitButton.textContent = 'Add entry';
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {
+        title: formData.get('title').trim(),
+        category: formData.get('category'),
+        status: formData.get('status'),
+        dueDate: formData.get('dueDate'),
+        notes: formData.get('notes').trim()
+      };
+      const wasEditing = Boolean(editingId);
+      submitButton.disabled = true;
+      form.setAttribute('aria-busy', 'true');
+      submitButton.textContent = wasEditing ? 'Saving...' : 'Adding...';
+      showLoadingNotice(wasEditing ? 'Saving changes...' : 'Adding entry...');
+      try {
+        const savedResponse = await request(wasEditing ? `/${encodeURIComponent(editingId)}` : '', {
+          method: wasEditing ? 'PUT' : 'POST',
+          body: JSON.stringify(toApiRecord(payload))
+        });
+        const savedRecord = fromApiRecord(savedResponse);
+        if (!wasEditing) rememberRemoteId(savedRecord.id);
+        resetForm();
+        records = wasEditing
+          ? records.map(record => record.id === savedRecord.id ? savedRecord : record)
+          : [savedRecord, ...records];
+        setConnected(true);
+        render();
+        showNotice(wasEditing ? 'Changes saved.' : 'Entry added.');
+      } catch (error) {
+        showNotice(error.message, true);
+      } finally {
+        form.setAttribute('aria-busy', 'false');
+        submitButton.disabled = false;
+        submitButton.textContent = editingId ? 'Save changes' : 'Add entry';
+      }
+    });
+
+    recordList.addEventListener('click', async event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'retry') {
+        await loadRecords();
+        return;
+      }
+      const record = records.find(item => String(item.id) === button.dataset.id);
+      if (!record) return;
+
+      if (button.dataset.action === 'edit') {
+        editingId = record.id;
+        form.classList.add('is-editing');
+        document.querySelector('#formTitle').textContent = 'Edit entry';
+        submitButton.textContent = 'Save changes';
+        form.elements.title.value = record.title;
+        form.elements.category.value = record.category;
+        form.elements.status.value = record.status;
+        form.elements.dueDate.value = record.dueDate;
+        form.elements.notes.value = record.notes;
+        document.querySelector('#titleInput').focus();
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+
+      if (button.dataset.action === 'delete' && !confirm(`Delete “${record.title}”?`)) return;
+      const originalButtonText = button.textContent;
+      button.disabled = true;
+      showLoadingNotice(button.dataset.action === 'delete' ? 'Deleting entry...' : 'Updating status...');
+      if (button.dataset.action === 'delete') button.textContent = 'Deleting...';
+      else button.textContent = '...';
+      try {
+        if (button.dataset.action === 'delete') {
+          await request(`/${encodeURIComponent(record.id)}`, { method: 'DELETE' });
+          forgetRemoteId(record.id);
+          if (editingId === record.id) resetForm();
+          records = records.filter(item => String(item.id) !== String(record.id));
+          showNotice('Entry deleted.');
+        } else {
+          const updatedResponse = await request(`/${encodeURIComponent(record.id)}`, {
+            method: 'PUT',
+            body: JSON.stringify(toApiRecord({
+              ...record,
+              status: record.status === 'Done' ? 'Open' : 'Done'
+            }))
+          });
+          const updatedRecord = fromApiRecord(updatedResponse);
+          records = records.map(item => String(item.id) === String(updatedRecord.id) ? updatedRecord : item);
+          showNotice(`Marked ${updatedRecord.status.toLowerCase()}.`);
+        }
+        setConnected(true);
+        render();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = originalButtonText;
+        showNotice(error.message, true);
+      }
+    });
+
+    filters.addEventListener('click', event => {
+      const button = event.target.closest('button[data-filter]');
+      if (!button) return;
+      activeFilter = button.dataset.filter;
+      filters.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      render();
+    });
+
+    document.querySelector('#searchInput').addEventListener('input', render);
+    document.querySelector('#refreshButton').addEventListener('click', loadRecords);
+    document.querySelector('#cancelButton').addEventListener('click', resetForm);
+    loadRecords();
+  </script>
+</body>
+</html>
